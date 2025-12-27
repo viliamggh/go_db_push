@@ -360,9 +360,6 @@ func main() {
 	sqlUsername := os.Getenv("SQL_USERNAME")
 	sqlPassword := os.Getenv("SQL_PASSWORD")
 
-	// TODO: find out more details about this "context"
-	ctx := context.Background()
-
 	// authenticate to azure
 	cred, err := azAuth()
 	if err != nil {
