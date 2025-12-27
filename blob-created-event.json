@@ -1,0 +1,25 @@
+[
+    {
+      "id": "dca274a7-3a67-4264-9bc1-d35fbd87b0ad",
+      "eventType": "Microsoft.Storage.BlobCreated",
+      "subject": "/blobServices/default/containers/raw/blobs/testblob.json",
+      "data": {
+        "api": "PutBlob",
+        "clientRequestId": "xyz",
+        "requestId": "abc",
+        "eTag": "0x8D83B61EBA12111",
+        "contentType": "application/json",
+        "contentLength": 1024,
+        "blobType": "BlockBlob",
+        "url": "https://safintrackdev.blob.core.windows.net/raw/testblob.json",
+        "sequencer": "00000000000000000000000000000000000000000000000000000000",
+        "storageDiagnostics": {
+          "batchId": "abc123"
+        }
+      },
+      "eventTime": "2021-01-01T00:00:00Z",
+      "metadataVersion": "1",
+      "dataVersion": "2"
+    }
+  ]
+  
