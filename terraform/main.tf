@@ -34,6 +34,12 @@ data "azurerm_resource_group" "app_rg" {
   name = var.rg_name
 }
 
+# Data source for Key Vault secret (SQL password)
+data "azurerm_key_vault_secret" "sql_password" {
+  name         = "sql-app-password"
+  key_vault_id = data.terraform_remote_state.core_infra.outputs.key_vault_id
+}
+
 # Local variables for core infrastructure references
 locals {
   # App resource group
@@ -54,6 +60,8 @@ locals {
   # SQL Database references (from fin_az_core remote state)
   sql_server_name   = data.terraform_remote_state.core_infra.outputs.sql_server_name
   sql_database_name = data.terraform_remote_state.core_infra.outputs.sql_database_name
+  sql_username      = "CloudSA022ea16a"
+  sql_password      = data.azurerm_key_vault_secret.sql_password.value
 
   # Shared application identity (from fin_az_core)
   app_identity_id           = data.terraform_remote_state.core_infra.outputs.app_identity_id

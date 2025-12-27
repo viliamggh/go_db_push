@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,10 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	mssql "github.com/microsoft/go-mssqldb"
+	_ "github.com/microsoft/go-mssqldb"
 )
 
 type StatementFile struct {
@@ -109,28 +107,17 @@ func getTxsFromBlobFile(ctx context.Context, blobClient *azblob.Client, containe
 	return txs, nil
 }
 
-func initDbConnector(sqlServerName, dbName string, cred *azidentity.DefaultAzureCredential, ctx context.Context) (driver.Connector, error) {
-
+func initDbConnector(sqlServerName, dbName, sqlUsername, sqlPassword string) (*sql.DB, error) {
 	host := fmt.Sprintf("%s.database.windows.net", sqlServerName)
-	connStr := fmt.Sprintf("server=%s;database=%s", host, dbName)
+	connStr := fmt.Sprintf("server=%s;user id=%s;password=%s;database=%s;encrypt=true;TrustServerCertificate=false",
+		host, sqlUsername, sqlPassword, dbName)
 
-	connector, err := mssql.NewAccessTokenConnector(
-		connStr,
-		func() (string, error) {
-			t, err := cred.GetToken(ctx, policy.TokenRequestOptions{
-				Scopes: []string{"https://database.windows.net/.default"},
-			})
-			if err != nil {
-				return "", err
-			}
-			return t.Token, nil
-		},
-	)
+	db, err := sql.Open("sqlserver", connStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	return connector, nil
+	return db, nil
 }
 
 func upsertTxs(txs []Transaction, db *sql.DB) {
@@ -370,6 +357,8 @@ func main() {
 	containerName := getEnvOrDefault("STORAGE_CONTAINER_NAME", "raw")
 	sqlServerName := os.Getenv("AZURE_SQL_SERVER_NAME") // e.g. "myserver" (without .database.windows.net)
 	dbName := os.Getenv("AZURE_SQL_DATABASE_NAME")
+	sqlUsername := os.Getenv("SQL_USERNAME")
+	sqlPassword := os.Getenv("SQL_PASSWORD")
 
 	// TODO: find out more details about this "context"
 	ctx := context.Background()
@@ -387,11 +376,10 @@ func main() {
 	}
 
 	// init db conn
-	connector, err := initDbConnector(sqlServerName, dbName, cred, ctx)
+	db, err := initDbConnector(sqlServerName, dbName, sqlUsername, sqlPassword)
 	if err != nil {
-		log.Fatalf("Failed to create access token connector: %v", err)
+		log.Fatalf("Failed to create database connection: %v", err)
 	}
-	db := sql.OpenDB(connector)
 	defer db.Close()
 
 	// Setup HTTP handler for Event Grid events.

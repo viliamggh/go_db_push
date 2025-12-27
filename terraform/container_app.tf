@@ -30,6 +30,11 @@ resource "azurerm_container_app" "db_push" {
     identity = local.app_identity_id
   }
 
+  secret {
+    name  = "sql-password"
+    value = local.sql_password
+  }
+
   template {
     container {
       name   = replace(var.image_name, "_", "")
@@ -82,6 +87,16 @@ resource "azurerm_container_app" "db_push" {
       env {
         name  = "AZURE_SQL_DATABASE_NAME"
         value = local.sql_database_name
+      }
+
+      env {
+        name  = "SQL_USERNAME"
+        value = local.sql_username
+      }
+
+      env {
+        name        = "SQL_PASSWORD"
+        secret_name = "sql-password"
       }
     }
   }
