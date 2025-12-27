@@ -60,7 +60,7 @@ locals {
   # SQL Database references (from fin_az_core remote state)
   sql_server_name   = data.terraform_remote_state.core_infra.outputs.sql_server_name
   sql_database_name = data.terraform_remote_state.core_infra.outputs.sql_database_name
-  sql_username      = "CloudSA022ea16a"
+  sql_username      = "app_user"
   sql_password      = data.azurerm_key_vault_secret.sql_password.value
 
   # Shared application identity (from fin_az_core)
