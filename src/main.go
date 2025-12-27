@@ -74,10 +74,8 @@ func azAuth() (*azidentity.DefaultAzureCredential, error) {
 	return cred, nil
 }
 
-func initBlobClient(storageAccountName string, cred *azidentity.DefaultAzureCredential) (*azblob.Client, error) {
-	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net", storageAccountName)
-
-	blobClient, err := azblob.NewClient(serviceURL, cred, nil)
+func initBlobClient(storageAccountURL string, cred *azidentity.DefaultAzureCredential) (*azblob.Client, error) {
+	blobClient, err := azblob.NewClient(storageAccountURL, cred, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -353,17 +351,23 @@ func handleBlobCreated(w http.ResponseWriter, r *http.Request, blobClient *azblo
 
 }
 
-// func main() {
-// 	http.HandleFunc("/blobCreated", handleBlobCreated)
-// 	port := "8080"
-// 	log.Printf("Listening on port %s", port)
-// 	log.Fatal(http.ListenAndServe(":"+port, nil))
-// }
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	log.Printf("Warning: %s not set, using default: %s", key, defaultValue)
+	return defaultValue
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
 
 func main() {
 
-	storageAccountName := "safintrackdev"
-	containerName := "raw"
+	storageAccountURL := os.Getenv("STORAGE_ACCOUNT_URL")
+	containerName := getEnvOrDefault("STORAGE_CONTAINER_NAME", "raw")
 	sqlServerName := os.Getenv("AZURE_SQL_SERVER_NAME") // e.g. "myserver" (without .database.windows.net)
 	dbName := os.Getenv("AZURE_SQL_DATABASE_NAME")
 
@@ -377,7 +381,7 @@ func main() {
 	}
 
 	// init blob client
-	blobClient, err := initBlobClient(storageAccountName, cred)
+	blobClient, err := initBlobClient(storageAccountURL, cred)
 	if err != nil {
 		log.Fatalf("failed to create blob client: %v", err)
 	}
@@ -394,6 +398,9 @@ func main() {
 	http.HandleFunc("/blobCreated", func(w http.ResponseWriter, r *http.Request) {
 		handleBlobCreated(w, r, blobClient, db, containerName)
 	})
+
+	// Setup health check endpoint
+	http.HandleFunc("/health", healthHandler)
 
 	// Start the HTTP server.
 	port := "8080"
