@@ -315,7 +315,9 @@ func handleBlobCreated(w http.ResponseWriter, r *http.Request, blobClient *azblo
 			}
 			// Either use the container from the subject or fall back to a default.
 			containerName := parts[4]
-			blobPath := parts[6] // e.g., "invoices/transactions_2024-12-28.json"
+			// Join all parts from index 6 onwards to get full blob path
+			// e.g., "invoices/transactions_2024-12-28.json"
+			blobPath := strings.Join(parts[6:], "/")
 
 			// Extract account and actual blob name from path
 			// Expected format: "{account}/{filename}"
