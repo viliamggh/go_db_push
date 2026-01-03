@@ -40,6 +40,12 @@ data "azurerm_key_vault_secret" "sql_password" {
   key_vault_id = data.terraform_remote_state.core_infra.outputs.key_vault_id
 }
 
+# Data source for webhook API key secret
+data "azurerm_key_vault_secret" "webhook_key" {
+  name         = "db-push-webhook-key"
+  key_vault_id = data.terraform_remote_state.core_infra.outputs.key_vault_id
+}
+
 # Local variables for core infrastructure references
 locals {
   # App resource group

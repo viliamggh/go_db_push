@@ -370,6 +370,34 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+// validateWebhook is a middleware that validates the ?code= query parameter
+func validateWebhook(webhookAPIKey string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Skip validation for health checks
+		if r.URL.Path == "/health" {
+			next(w, r)
+			return
+		}
+
+		// Handle Event Grid subscription validation handshake
+		if r.Header.Get("aeg-event-type") == "SubscriptionValidation" {
+			next(w, r)
+			return
+		}
+
+		// Validate API key in query string
+		if webhookAPIKey != "" {
+			providedKey := r.URL.Query().Get("code")
+			if providedKey != webhookAPIKey {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
+
+		next(w, r)
+	}
+}
+
 func main() {
 
 	storageAccountURL := os.Getenv("STORAGE_ACCOUNT_URL")
@@ -378,6 +406,7 @@ func main() {
 	dbName := os.Getenv("AZURE_SQL_DATABASE_NAME")
 	sqlUsername := os.Getenv("SQL_USERNAME")
 	sqlPassword := os.Getenv("SQL_PASSWORD")
+	webhookAPIKey := os.Getenv("WEBHOOK_API_KEY")
 
 	// authenticate to azure
 	cred, err := azAuth()
@@ -398,10 +427,10 @@ func main() {
 	}
 	defer db.Close()
 
-	// Setup HTTP handler for Event Grid events.
-	http.HandleFunc("/blobCreated", func(w http.ResponseWriter, r *http.Request) {
+	// Setup HTTP handler for Event Grid events with webhook validation
+	http.HandleFunc("/blobCreated", validateWebhook(webhookAPIKey, func(w http.ResponseWriter, r *http.Request) {
 		handleBlobCreated(w, r, blobClient, db, containerName)
-	})
+	}))
 
 	// Setup health check endpoint
 	http.HandleFunc("/health", healthHandler)

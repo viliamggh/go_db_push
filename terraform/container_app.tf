@@ -35,6 +35,11 @@ resource "azurerm_container_app" "db_push" {
     value = local.sql_password
   }
 
+  secret {
+    name  = "webhook-key"
+    value = data.azurerm_key_vault_secret.webhook_key.value
+  }
+
   template {
     container {
       name   = replace(var.image_name, "_", "")
@@ -97,6 +102,11 @@ resource "azurerm_container_app" "db_push" {
       env {
         name        = "SQL_PASSWORD"
         secret_name = "sql-password"
+      }
+
+      env {
+        name        = "WEBHOOK_API_KEY"
+        secret_name = "webhook-key"
       }
     }
   }
