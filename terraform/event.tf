@@ -4,7 +4,7 @@ resource "azurerm_eventgrid_event_subscription" "blob_created" {
   scope = local.storage_account_id
 
   webhook_endpoint {
-    url = "https://${azurerm_container_app.db_push.latest_revision_fqdn}/blobCreated"
+    url = "https://${azurerm_container_app.db_push.latest_revision_fqdn}/blobCreated?code=${urlencode(data.azurerm_key_vault_secret.webhook_key.value)}"
   }
 
   included_event_types = ["Microsoft.Storage.BlobCreated"]
